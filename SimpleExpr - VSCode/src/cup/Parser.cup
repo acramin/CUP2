@@ -1,0 +1,95 @@
+// Especificação do parser CUP
+package parser;
+import java_cup.runtime.*;
+import java.util.HashMap;
+parser code {:
+        // symbolTable é a tabela de símbolos
+        private HashMap <String, Double> symbolTable = new HashMap <>();
+:}
+// Definição dos terminais
+terminal            SEMI, PLUS, MINUS, TIMES, DIVIDE, MOD, PRINT;
+terminal            UMINUS, LPAREN, RPAREN, ASSIGN, SIN, COS, EXP;
+terminal Double     NUMBER;
+terminal String     ID;
+terminal Double     PI;
+
+// Definição dos não-terminais
+non terminal            program, command_list, command_part, command;
+non terminal            assignment_command, print_command;
+non terminal Double     expr;
+
+
+// Precedência e associatividade dos operadores
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE, MOD;
+precedence right EXP;
+precedence left UMINUS;
+
+
+// Regras da gramática
+program ::= command_list
+    ;
+
+command_list ::= command_list command_part
+    | command_part
+    ;
+
+command_part ::= command SEMI
+    | error SEMI
+    ;
+
+command ::= assignment_command
+    | print_command
+    ;
+
+assignment_command ::= ID:id ASSIGN expr:e
+    {:
+            symbolTable.put(id, e);
+    :}
+    ;
+
+print_command ::= PRINT LPAREN expr:e RPAREN
+    {:
+            System.out.println(">> " + e);
+    :}
+    ;
+
+expr ::= expr:e1 PLUS expr:e2
+            {: RESULT = e1 + e2; :}
+    | expr:e1 MINUS expr:e2
+            {: RESULT = e1 - e2; :}
+    | expr:e1 TIMES expr:e2
+            {: RESULT = e1 * e2; :}
+    | expr:e1 DIVIDE expr:e2
+            {: RESULT = e1 / e2; :}
+    | expr:e1 MOD expr:e2
+            {: RESULT = e1 % e2; :}
+    | expr:e1 EXP expr:e2
+            {: RESULT = Math.pow(e1, e2); :}
+    | MINUS expr:e 
+            {: RESULT = -e; :} %prec UMINUS
+    | LPAREN expr:e RPAREN 
+            {: RESULT = e; :}
+    | NUMBER:n 
+            {: RESULT = n; :}
+    | ID:id 
+            {:  Double value = symbolTable.get(id);
+                if( value == null ) {
+                        System.err.println("Erro: variável \"" + id +
+                                "\" não inicializada!");
+                }
+                RESULT = value; 
+            :}
+    | SIN LPAREN expr:e RPAREN 
+            {:
+                RESULT = Math.sin(e);
+            :}
+    | COS LPAREN expr:e RPAREN
+            {:
+                RESULT = Math.cos(e);
+            :}
+    | PI:pi 
+            {: 
+                RESULT = pi; 
+            :}
+    ;
