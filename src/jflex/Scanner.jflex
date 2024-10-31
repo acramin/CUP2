@@ -28,9 +28,11 @@ import java_cup.runtime.*;
 ws = [\ \t\f\r\n]
 number = \d+(\.\d+)?(["E""e"]["+""-"]?\d+)?
 identifier = [A-Za-z][A-Za-z0-9]*
-string = \"([^\"]|\')*\"
+string = \"([^\"\\\\]*(\\\\.[^\"\\\\]*)*)\"
 
 %%
+"{"         { return symbol(sym.LCURLY); }
+"}"         { return symbol(sym.RCURLY); }
 ";"         { return symbol(sym.SEMI); }
 "+"         { return symbol(sym.PLUS); }
 "-"         { return symbol(sym.MINUS); }
@@ -40,8 +42,6 @@ string = \"([^\"]|\')*\"
 "%"         { return symbol(sym.MOD); }
 "("         { return symbol(sym.LPAREN); }
 ")"         { return symbol(sym.RPAREN); }
-"{"         { return symbol(sym.LBRACE); }
-"}"         { return symbol(sym.RBRACE); }
 "="         { return symbol(sym.ASSIGN); }
 "sin"       { return symbol(sym.SIN); }
 "cos"       { return symbol(sym.COS); }

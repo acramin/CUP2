@@ -1,11 +1,15 @@
-x = 3;
-y = -2;
-print(x ** y ** 2);
-x = PI;
-print(sin(x));
-print(cos(x));
-x = y;
-z = x;
-print(x);
-print(y);
-print(z);
+msg = "Ola Mundo!";
+print(msg);
+
+x = 10.5;
+print("O valor de x eh: " + x);
+
+{
+    print("Entrando em um escopo...");
+    print("valor global - antes de alterar: " + x);
+    x = 7.4;
+    print("valor escopo - alterado: " + x);
+    print("Saindo de um escopo...");
+}
+
+print("O valor de x eh: " + x);

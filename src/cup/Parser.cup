@@ -1,22 +1,75 @@
 // Especificação do parser CUP
 package parser;
 import java_cup.runtime.*;
-import java.util.HashMap;
+import java.util.*;
+
 parser code {:
-        // symbolTable é a tabela de símbolos
-        private HashMap <String, Double> symbolTable = new HashMap <>();
+
+    // Pilha de tabelas de símbolos para representar escopos
+    private Stack<HashMap<String, Object>> symbolStack = new Stack<>();
+
+    // Inicia o escopo global
+    {
+        symbolStack.push(new HashMap<String, Object>());
+    }
+
+    // Entra no escopo 
+    void enterScope() {
+        //System.out.println("qtd escopo " + symbolStack.size());
+        //System.out.println(symbolStack.push(new HashMap<String, Object>()));
+        symbolStack.push(new HashMap<String, Object>());
+        //System.out.println("qtd escopo " +symbolStack.size());
+    }
+
+    // Sai do escopo atual
+    void exitScope() {
+        if (!symbolStack.isEmpty()) {
+            //System.out.println("qtd escopo " +symbolStack.size());
+            //System.out.println(symbolStack.pop());
+            symbolStack.pop();
+            //System.out.println("qtd escopo " +symbolStack.size());
+        } else {
+            System.err.println("Erro: tentativa de sair de um escopo inexistente!");
+        }
+    }
+
+    // Busca uma variável no escopo atual e nos escopos externos usando Iterator
+    Object lookupSymbol(String id) {
+        Iterator<HashMap<String, Object>> iterator = symbolStack.iterator();
+        //System.out.println("it " + iterator);
+        for( int i  = symbolStack.size(); i > 0; i--) {
+            HashMap<String, Object> currentScope = symbolStack.get(i-1);
+            //System.out.println("currentScope: " + currentScope);
+            if (currentScope.containsKey(id)) {
+                return currentScope.get(id);
+            }
+        }
+        
+        System.err.println("Erro: variável \"" + id + "\" não encontrada!");
+        return null;
+    }
+
+    // Atribui uma variável no escopo adequado
+    void assignSymbol(String id, Object value) {
+        //System.out.println("pico "+ symbolStack.peek().put(id, value));
+        symbolStack.peek().put(id, value);
+    }
+
 :}
+
 // Definição dos terminais
 terminal            SEMI, PLUS, MINUS, TIMES, DIVIDE, MOD, PRINT;
 terminal            UMINUS, LPAREN, RPAREN, ASSIGN, SIN, COS, EXP;
+terminal            LCURLY, RCURLY, QUOTE;
 terminal Double     NUMBER;
 terminal String     ID;
 terminal Double     PI;
+terminal String     STRING;
 
 // Definição dos não-terminais
-non terminal            program, command_list, command_part, command;
+non terminal            program, command_list, command_part, command_block, command;
 non terminal            assignment_command, print_command;
-non terminal Double     expr;
+non terminal Object     expr;
 
 
 // Precedência e associatividade dos operadores
@@ -35,7 +88,18 @@ command_list ::= command_list command_part
     ;
 
 command_part ::= command SEMI
-    | error SEMI
+    | command_block
+    ;
+
+command_block ::= LCURLY 
+    {:
+        enterScope();
+    :}
+    command_list
+    RCURLY
+    {:
+        exitScope();
+    :}
     ;
 
 command ::= assignment_command
@@ -44,52 +108,129 @@ command ::= assignment_command
 
 assignment_command ::= ID:id ASSIGN expr:e
     {:
-            symbolTable.put(id, e);
+            assignSymbol(id, e);
     :}
     ;
 
 print_command ::= PRINT LPAREN expr:e RPAREN
-    {:
+    {: if (e instanceof Double) {
             System.out.println(">> " + e);
+        } else if (e instanceof String) {
+            if (e.toString().charAt(0) == '"' && e.toString().charAt(e.toString().length()-1) == '"') {
+                System.out.println(">> " + e.toString().substring(1, e.toString().length()-1));
+            }if (e.toString().charAt(0) == '"' && !(e.toString().charAt(e.toString().length()-1) == '"')) {
+                System.out.println(">> " + e.toString().substring(1, e.toString().length()));
+            } if (!(e.toString().charAt(0) == '"') && e.toString().charAt(e.toString().length()-1) == '"') {
+                System.out.println(">> " + e.toString().substring(0, e.toString().length()-1));
+            }
+        }
     :}
     ;
 
 expr ::= expr:e1 PLUS expr:e2
-            {: RESULT = e1 + e2; :}
+            {: if (e1 instanceof String && e2 instanceof String) {
+            RESULT = e1.toString().substring(0, e1.toString().length()- 1) + e2.toString().substring(1, e2.toString().length());
+            } else if (e1 instanceof String) {
+                RESULT = e1.toString().substring(0, e1.toString().length()- 1) + e2.toString();
+            } else if (e2 instanceof String) {
+                RESULT = e1.toString() + e2.toString().substring(1, e2.toString().length()-1);
+            } else if (e1 instanceof Double && e2 instanceof Double) {
+                RESULT = (Double) e1 + (Double) e2;
+            } else {
+                throw new RuntimeException("Erro: soma inválida entre tipos incompatíveis.");
+            }
+            :}
     | expr:e1 MINUS expr:e2
-            {: RESULT = e1 - e2; :}
+            {: if (e1 instanceof Double && e2 instanceof Double) {
+                RESULT = (Double) e1 - (Double) e2; 
+            } else {
+                System.err.println("Erro: operação inválida!");
+            }
+            :}
     | expr:e1 TIMES expr:e2
-            {: RESULT = e1 * e2; :}
+            {: if(e1 instanceof Double && e2 instanceof Double) {
+                RESULT = (Double) e1 * (Double) e2; 
+            } else {
+                System.err.println("Erro: operação inválida!");
+            }
+            :}
     | expr:e1 DIVIDE expr:e2
-            {: RESULT = e1 / e2; :}
+            {: if(e1 instanceof Double && e2 instanceof Double) {
+                RESULT = (Double) e1 / (Double) e2; 
+            } else {
+                System.err.println("Erro: operação inválida!");
+            }
+            :}
     | expr:e1 MOD expr:e2
-            {: RESULT = e1 % e2; :}
+            {: if(e1 instanceof Double && e2 instanceof Double) {
+                RESULT = (Double) e1 % (Double) e2;
+            } else {
+                System.err.println("Erro: operação inválida!");
+            } 
+            :}
     | expr:e1 EXP expr:e2
-            {: RESULT = Math.pow(e1, e2); :}
+            {: if(e1 instanceof Double && e2 instanceof Double) {
+                RESULT = Math.pow((Double) e1, (Double) e2); 
+            } else {
+                System.err.println("Erro: operação inválida!");
+            }
+            :}
     | MINUS expr:e 
-            {: RESULT = -e; :} %prec UMINUS
+            {: if(e instanceof Double) {
+                RESULT = -(Double) e; 
+            } else {
+                System.err.println("Erro: operação inválida!");
+            }
+            :} %prec UMINUS
     | LPAREN expr:e RPAREN 
-            {: RESULT = e; :}
+            {: if(e instanceof Double) {
+                RESULT = (Double) e; 
+            } else {
+                System.err.println("Erro: operação inválida!");
+            }
+            :}
     | NUMBER:n 
-            {: RESULT = n; :}
+            {: if(n instanceof Double) {
+                RESULT = (Double) n; 
+            } 
+            :}
+    | STRING:s
+            {: if (s instanceof String) {
+                RESULT = s;}
+            :}
     | ID:id 
-            {:  Double value = symbolTable.get(id);
+            {:  Object value = lookupSymbol(id);
                 if( value == null ) {
                         System.err.println("Erro: variável \"" + id +
                                 "\" não inicializada!");
                 }
-                RESULT = value; 
+                else 
+                { 
+                    RESULT = value; 
+                }
             :}
     | SIN LPAREN expr:e RPAREN 
-            {:
-                RESULT = Math.sin(e);
+            {:  if(e instanceof Double) {
+                RESULT = Math.sin((Double) e);
+                }
+                else {
+                    System.err.println("Erro: operação inválida!");
+                }
             :}
     | COS LPAREN expr:e RPAREN
-            {:
-                RESULT = Math.cos(e);
+            {: if(e instanceof Double) {
+                RESULT = Math.cos((Double) e);
+                }
+                else {
+                    System.err.println("Erro: operação inválida!");
+                }
             :}
     | PI:pi 
-            {: 
+            {: if(pi instanceof Double) {
                 RESULT = pi; 
+                }
+                else {
+                    System.err.println("Erro: operação inválida!");
+                }
             :}
     ;

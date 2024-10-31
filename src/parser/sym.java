@@ -15,13 +15,17 @@ public interface sym {
   public static final int RPAREN = 11;
   public static final int COS = 14;
   public static final int SEMI = 2;
+  public static final int RCURLY = 17;
   public static final int LPAREN = 10;
-  public static final int ID = 17;
+  public static final int ID = 20;
   public static final int EXP = 15;
+  public static final int QUOTE = 18;
+  public static final int LCURLY = 16;
+  public static final int STRING = 22;
+  public static final int NUMBER = 19;
   public static final int EOF = 0;
-  public static final int NUMBER = 16;
   public static final int DIVIDE = 6;
-  public static final int PI = 18;
+  public static final int PI = 21;
   public static final int MINUS = 4;
   public static final int PRINT = 8;
   public static final int error = 1;
@@ -44,9 +48,13 @@ public interface sym {
   "SIN",
   "COS",
   "EXP",
+  "LCURLY",
+  "RCURLY",
+  "QUOTE",
   "NUMBER",
   "ID",
-  "PI"
+  "PI",
+  "STRING"
   };
 }
 
